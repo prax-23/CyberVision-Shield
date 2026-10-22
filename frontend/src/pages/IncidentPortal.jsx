@@ -14,11 +14,14 @@ export default function IncidentPortal() {
       setLoading(true);
       const res = await fetch('/api/incidents');
       const data = await res.json();
-      setIncidents(data);
-      
+      // API returns an array on success, or an error object if the database is unavailable
+      setIncidents(Array.isArray(data) ? data : []);
+
       const statsRes = await fetch('/api/incidents/stats');
       const statsData = await statsRes.json();
-      setStats(statsData);
+      setStats(statsData && statsData.priorities && statsData.statuses
+        ? statsData
+        : { total: 0, categories: {}, priorities: {}, statuses: {} });
     } catch (err) {
       console.error('Error fetching incidents:', err);
     } finally {

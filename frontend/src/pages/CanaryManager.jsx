@@ -20,7 +20,8 @@ export default function CanaryManager() {
       setLoading(true);
       const res = await fetch('/api/tracker');
       const data = await res.json();
-      setTokens(data);
+      // API returns an array on success, or an error object if the database is unavailable
+      setTokens(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching canary tokens:', err);
     } finally {
@@ -33,7 +34,7 @@ export default function CanaryManager() {
       setLogsLoading(true);
       const res = await fetch(`/api/tracker/${tokenId}/logs`);
       const data = await res.json();
-      setTokenLogs(data);
+      setTokenLogs(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching token logs:', err);
     } finally {
