@@ -50,6 +50,40 @@ function getLevenshteinDistance(a, b) {
   return matrix[b.length][a.length];
 }
 
+// Temporary tunnel and free dynamic-DNS services. Anyone can get an address on these
+// in seconds with no identity check, so they are heavily abused for phishing pages.
+const RISKY_HOSTS = [
+  { suffix: 'trycloudflare.com', provider: 'Cloudflare Quick Tunnel', category: 'tunnel' },
+  { suffix: 'ngrok.io', provider: 'ngrok', category: 'tunnel' },
+  { suffix: 'ngrok-free.app', provider: 'ngrok', category: 'tunnel' },
+  { suffix: 'ngrok-free.dev', provider: 'ngrok', category: 'tunnel' },
+  { suffix: 'ngrok.app', provider: 'ngrok', category: 'tunnel' },
+  { suffix: 'loca.lt', provider: 'localtunnel', category: 'tunnel' },
+  { suffix: 'serveo.net', provider: 'Serveo', category: 'tunnel' },
+  { suffix: 'serveousercontent.com', provider: 'Serveo', category: 'tunnel' },
+  { suffix: 'lhr.life', provider: 'localhost.run', category: 'tunnel' },
+  { suffix: 'localhost.run', provider: 'localhost.run', category: 'tunnel' },
+  { suffix: 'pinggy.link', provider: 'Pinggy', category: 'tunnel' },
+  { suffix: 'pinggy.online', provider: 'Pinggy', category: 'tunnel' },
+  { suffix: 'bore.pub', provider: 'bore', category: 'tunnel' },
+  { suffix: 'telebit.cloud', provider: 'Telebit', category: 'tunnel' },
+  { suffix: 'devtunnels.ms', provider: 'Microsoft Dev Tunnels', category: 'tunnel' },
+  { suffix: 'duckdns.org', provider: 'Duck DNS', category: 'dynamic-dns' },
+  { suffix: 'ddns.net', provider: 'No-IP', category: 'dynamic-dns' },
+  { suffix: 'no-ip.org', provider: 'No-IP', category: 'dynamic-dns' },
+  { suffix: 'hopto.org', provider: 'No-IP', category: 'dynamic-dns' },
+  { suffix: 'zapto.org', provider: 'No-IP', category: 'dynamic-dns' },
+  { suffix: 'serveftp.com', provider: 'No-IP', category: 'dynamic-dns' },
+  { suffix: 'dynu.net', provider: 'Dynu', category: 'dynamic-dns' },
+  { suffix: 'freedns.afraid.org', provider: 'FreeDNS', category: 'dynamic-dns' },
+];
+
+// Find whether a domain is hosted on a temporary tunnel or dynamic-DNS service
+export function findRiskyHost(domain) {
+  const match = RISKY_HOSTS.find(h => domain === h.suffix || domain.endsWith(`.${h.suffix}`));
+  return match ? { provider: match.provider, category: match.category, suffix: match.suffix } : null;
+}
+
 // Extract clean domain (e.g. "google.com" from "https://sub.google.com/path?query")
 export function extractDomain(inputStr) {
   let cleaned = inputStr.trim().toLowerCase();
@@ -128,6 +162,9 @@ export function analyzeDomain(inputUrl) {
     }
   }
 
+  // Temporary tunnels / dynamic DNS (e.g. random-words.trycloudflare.com)
+  const riskyHost = findRiskyHost(asciiDomain);
+
   // Calculate risk score (0 - 100)
   let riskScore = 0;
   const riskReasons = [];
@@ -162,6 +199,19 @@ export function analyzeDomain(inputUrl) {
     });
   }
 
+  if (riskyHost) {
+    const isTunnel = riskyHost.category === 'tunnel';
+    const pts = isTunnel ? 50 : 35;
+    riskScore += pts;
+    riskReasons.push({
+      factor: isTunnel
+        ? `Hosted on a temporary tunnel (${riskyHost.provider}) - real companies do not use these, phishing kits often do`
+        : `Uses a free dynamic-DNS address (${riskyHost.provider}) - commonly abused for phishing and malware`,
+      severity: 'High',
+      points: pts
+    });
+  }
+
   // Cap risk score at 100
   riskScore = Math.min(riskScore, 100);
 
@@ -183,6 +233,7 @@ export function analyzeDomain(inputUrl) {
     homoglyphsFound,
     typosquattingMatch,
     suspiciousKeywordsFound,
+    riskyHost,
     riskScore,
     riskReasons,
     status

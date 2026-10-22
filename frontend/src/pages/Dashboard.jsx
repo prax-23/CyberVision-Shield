@@ -255,6 +255,22 @@ export default function Dashboard() {
                       </p>
                     )}
                   </div>
+
+                  <div style={{ padding: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--cyber-blue)', marginBottom: '12px' }}>Hosting Assessment</h4>
+                    {result.riskyHost ? (
+                      <p style={{ fontSize: '0.85rem', color: 'var(--color-warning)', display: 'flex', alignItems: 'flex-start', gap: '6px', lineHeight: '1.4' }}>
+                        <ShieldAlert size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        {result.riskyHost.category === 'tunnel'
+                          ? `Temporary tunnel address (${result.riskyHost.provider}). Anyone can create one in seconds; official websites never use these.`
+                          : `Free dynamic-DNS address (${result.riskyHost.provider}). Often used to host phishing pages and malware.`}
+                      </p>
+                    ) : (
+                      <p style={{ fontSize: '0.85rem', color: 'var(--color-safe)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <ShieldCheck size={16} /> No temporary tunnel or dynamic-DNS hosting detected.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
