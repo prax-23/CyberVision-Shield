@@ -1,26 +1,39 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 
 let mongoServer = null;
+let connection = null;
 
-export const connectDB = async () => {
-  try {
-    let mongoUri = process.env.MONGODB_URI;
+const openConnection = async () => {
+  let mongoUri = process.env.MONGODB_URI;
 
-    if (!mongoUri) {
-      console.log('No MONGODB_URI environment variable detected.');
-      console.log('Spinning up an in-memory MongoDB server for CyberShield...');
-      mongoServer = await MongoMemoryServer.create();
-      mongoUri = mongoServer.getUri();
-      console.log(`In-memory MongoDB Server is running at: ${mongoUri}`);
+  if (!mongoUri) {
+    // Serverless functions cannot run a local database
+    if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      throw new Error('MONGODB_URI environment variable is not set.');
     }
-
-    const conn = await mongoose.connect(mongoUri);
-    console.log(`MongoDB Connected successfully: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+    console.log('No MONGODB_URI environment variable detected.');
+    console.log('Spinning up an in-memory MongoDB server for CyberShield...');
+    const memoryServerPkg = 'mongodb-memory-server';
+    const { MongoMemoryServer } = await import(memoryServerPkg);
+    mongoServer = await MongoMemoryServer.create();
+    mongoUri = mongoServer.getUri();
+    console.log(`In-memory MongoDB Server is running at: ${mongoUri}`);
   }
+
+  const conn = await mongoose.connect(mongoUri);
+  console.log(`MongoDB Connected successfully: ${conn.connection.host}`);
+  return conn;
+};
+
+// Connects once and reuses the connection (also across serverless invocations)
+export const connectDB = () => {
+  if (!connection) {
+    connection = openConnection().catch((error) => {
+      connection = null;
+      throw error;
+    });
+  }
+  return connection;
 };
 
 export const closeDB = async () => {

@@ -1,0 +1,26 @@
+[build]
+  command = "npm run build"
+  publish = "frontend/dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # The in-memory database is not used on Netlify, so skip downloading MongoDB
+  MONGOMS_DISABLE_POSTINSTALL = "1"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["pdf-parse", "mongodb-memory-server"]
+
+# Send API calls to the Express backend function
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# Single-page app fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

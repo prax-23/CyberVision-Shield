@@ -1,7 +1,8 @@
 import express from 'express';
 import multer from 'multer';
 import exifParser from 'exif-parser';
-import pdfParse from 'pdf-parse';
+// Import the library file directly: the package entry runs a debug self-test when bundled
+import pdfParse from 'pdf-parse/lib/pdf-parse.js';
 import dns from 'dns/promises';
 import { analyzeDomain } from '../utils/homoglyph.js';
 
